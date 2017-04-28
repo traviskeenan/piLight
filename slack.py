@@ -4,6 +4,8 @@ import json
 import re
 import leds
 import sys
+from slackBambooMsgParser import slackBambooMsgParser
+import json
 
 RED = "d00000"
 GREEN = "36a64f"
@@ -22,32 +24,23 @@ response = sc.api_call(
 failedjobs = set([])
 
 for msg in reversed(response["messages"]):
-    # print "MSG:"
-    # print msg
-    # print ""
-    if "username" not in msg:
-        continue
-    if "attachments" not in msg:
-        continue
-    # Only look for the projects that we are interested in
-    if "ClearCare" not in msg:
-        continue
+    msgParser = slackBambooMsgParser(msg)
+    #print curMsg.getMsg()
+    if not msgParser.isValid():
+	continue
+    if msgParser.getBambooProjectName() != "ClearCare":
+	continue
 
-    if ( msg["username"] == "Bamboo" ) or ( msg["username"] == "incoming-webhook" ):
-        messageText = msg["attachments"][0]["fallback"]
-        parts = messageText.split(u' \u203a ')
-        plan = parts[1]
-        # See if parts[2] has a build number, which indicates it's the dev branch.  Otherwise parts[2] is the branch name, and parts[3] has the build number.
-        buildNumberRegex = re.compile("^#.*")
-        if not buildNumberRegex.match(parts[2]):
+    if ( msgParser.getUser() == "Bamboo" ) or ( msgParser.getUser() == "incoming-webhook" ):
+        if msgParser.isFeatureBranch():
             continue
-        
-        successRegex = re.compile(".*passed.*")
-        if successRegex.match(messageText):
-            failedjobs.discard(plan)
+
+        if msgParser.isJobPassed():
+            failedjobs.discard(msgParser.getBambooPlanName())
         else:
-            if msg["attachments"][0]["color"] == RED:
-                failedjobs.add(plan)
+            failedjobs.add(msgParser.getBambooPlanName())
+            #NOTE: May need to add logic for so that grey messages don't get used
+            #        msg["attachments"][0]["color"] == RED:
     else:
         continue
 
@@ -56,8 +49,8 @@ if len(failedjobs) == 0:
 else:
     leds.setColorByRGB(255,0,0)
 
-# print '--------- failures -----------'
+#print '--------- failures -----------'
 #for plan in failedjobs:
 #    print plan
-#
+
 #print len(failedjobs)

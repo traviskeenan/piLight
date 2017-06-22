@@ -14,6 +14,9 @@ GREY = "707070"
 slack_token = ''
 sc = SlackClient(slack_token)
 
+wantedProjectNames = ("ClearCare", "CFN-CareGapDeploy")
+planNamesToIgnore = ("Test", "oauth-service", "CareGap")
+
 response = sc.api_call(
   "channels.history",
   channel="C3K3PGK8B"
@@ -28,7 +31,9 @@ for msg in reversed(response["messages"]):
     #print curMsg.getMsg()
     if not msgParser.isValid():
 	continue
-    if msgParser.getBambooProjectName() != "ClearCare":
+    if msgParser.getBambooProjectName() not in wantedProjectNames:
+	continue
+    if msgParser.getBambooPlanName() in planNamesToIgnore:
 	continue
 
     if ( msgParser.getUser() == "Bamboo" ) or ( msgParser.getUser() == "incoming-webhook" ):

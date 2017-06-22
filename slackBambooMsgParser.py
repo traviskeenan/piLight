@@ -19,10 +19,9 @@ class slackBambooMsgParser(object):
 		return self.message
 
 	def isJobPassed(self):
-		successRegex = re.compile(".*passed.*")
+		successRegex = re.compile(".*passed.*|.*was successfully deployed.*")
 		if successRegex.match( self.jsonMsg["attachments"][0]["fallback"] ):
 			return True
-
 		return False
 
 	def isValid(self):
@@ -31,18 +30,32 @@ class slackBambooMsgParser(object):
 			vaild = True
 		else:
 			vaild = False
-
 		return vaild
 
 	def getBambooProjectName(self):
-		return self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[0]
+		if self._isDeployPlan():
+			return self.jsonMsg["attachments"][0]["fallback"].split()[0]
+		else:
+			return self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[0]
 
 	def getBambooPlanName(self):
-		return self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[1]
+		if self._isDeployPlan():
+			if self.isJobPassed():
+				return self.jsonMsg["attachments"][0]["fallback"].split()[0] + "-" + self.jsonMsg["attachments"][0]["fallback"].split()[6]
+			else:
+				return self.jsonMsg["attachments"][0]["fallback"].split()[0] + "-" + self.jsonMsg["attachments"][0]["fallback"].split()[5]
+		else:
+			return self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[1]
 
 	def isFeatureBranch(self):
-		buildNumberRegex = re.compile("^#.*")
-		if not buildNumberRegex.match(self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[2]):
-			return True
+		if not self._isDeployPlan():
+			buildNumberRegex = re.compile("^#.*")
+			if not buildNumberRegex.match(self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[2]):
+				return True
+		return False
 
+	def _isDeployPlan(self):
+		deploymentPlanRegex = re.compile(".*viewDeploymentProjectEnvironments.*")
+		if deploymentPlanRegex.match( self.jsonMsg["attachments"][0]["text"]):
+			return True
 		return False

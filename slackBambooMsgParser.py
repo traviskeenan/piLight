@@ -4,6 +4,11 @@ import re
 
 class slackBambooMsgParser(object):
 
+	RED = "d00000"
+	GREEN = "36a64f"
+	GREY = "707070"
+	YELLOW = "daa038"
+
 	def __init__(self, message):
 		if ( type(message) is types.DictType ):
 			self.message = str(message)
@@ -27,7 +32,7 @@ class slackBambooMsgParser(object):
 	def isValid(self):
 		vaild = False
 		if ( 'username' in self.jsonMsg ) and ( 'attachments' in self.jsonMsg ):
-			vaild = True
+			vaild = self._isCorrectStatus()
 		else:
 			vaild = False
 		return vaild
@@ -52,6 +57,11 @@ class slackBambooMsgParser(object):
 			buildNumberRegex = re.compile("^#.*")
 			if not buildNumberRegex.match(self.jsonMsg["attachments"][0]["fallback"].split(u' \u203a ')[2]):
 				return True
+		return False
+
+	def _isCorrectStatus(self):
+		if ( self.jsonMsg["attachments"][0]["color"] == self.RED ) or ( self.jsonMsg["attachments"][0]["color"] == self.GREEN ):
+			return True
 		return False
 
 	def _isDeployPlan(self):
